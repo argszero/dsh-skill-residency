@@ -1,0 +1,87 @@
+# The @argszero/dsh-skill-residency bundle patch: mount and go.
+#
+# A session's skill catalog ends with the trigger rule every skill is expected to
+# earn its place through:
+#
+#   If the user names a skill, or the task clearly matches a skill's description,
+#   call the `skill` tool…
+#
+# Both conditions presume a skill BOUND TO A TASK. An output style — "load this at
+# the start of every session and follow it for all responses until the reader says
+# stop" — matches neither: no ordinary request "clearly matches" it, and no
+# frontmatter field carries the intent. The filesystem provider parses `name`,
+# `description`, `whenToUse`, `metadata`, `disable-model-invocation` and
+# `user-invocable`, and none of them means "always". So a skill that should be
+# resident can only be resident by leaving the skill system for `AGENTS.md`.
+#
+# The second gap is quieter and is a pure loss of author intent. `whenToUse` is
+# parsed, validated, documented and carried all the way to the client — and it
+# never reaches the model. The catalog emits `{name, description}` per skill
+# (`catalogSourceEntries`), `renderSkillContent` renders the body, and
+# `@deepseek-ai/dsh-tool-skill` contains zero occurrences of the field. An author
+# writes the routing sentence and the model never sees it.
+#
+# Discussion #9375 is that report. This plugin closes both halves at the step
+# boundary, without changing a core package.
+#
+#   1. It contributes the `agent/pre-step` waterfall — the seam every model
+#      request is assembled through — with `{ prepend: true }`, so it reads the
+#      batch the loop is about to commit, and appends to it.
+#   2. It reads the live catalog through `ctx.skills.snapshot()` and
+#      `ctx.skills.get()`, and plans two things: one message carrying each
+#      author's `whenToUse`, and one message per resident skill carrying its full
+#      body, rendered through `renderSkillContent` — the envelope the `skill` tool
+#      and the `/name` gesture already produce, which the catalog already teaches
+#      the model to follow.
+#   3. Both land as durable, source-attributed user messages. A resident skill is
+#      therefore re-published automatically when compaction drops its message,
+#      because the plugin asks the session which of its events the model can still
+#      see (`agent.session.surface.nodes`) rather than keeping state of its own —
+#      the same mechanism `tool-skill` uses for its catalog.
+#
+# Residency comes from two places, and a deployment may use either:
+#
+#   - the `resident` config list, naming skills outright;
+#   - `metadata: { resident: true }` in a skill's own frontmatter, which needs no
+#     core change because the filesystem provider preserves arbitrary metadata
+#     keys.
+#
+# The plugin is inert until one of them applies: a deployment whose skills
+# declare no `whenToUse` and keep no residents gets no message, no session event
+# and no token spent. It refuses nothing and reads nothing outside the skill
+# registry.
+#
+# The real fix is upstream: an always-load field the tool path recognises, the
+# catalog carrying `whenToUse`, and trigger wording that admits resident skills.
+#
+# Optional config:
+#
+#   - set:
+#       - id: skill-residency
+#         config:
+#           # Skill names whose full body is always injected, whether or not their
+#           # frontmatter says so. A name matching no model-invocable skill is
+#           # ignored, not an error — a deployment may list a skill it installs
+#           # later.
+#           resident: []
+#           # true (default) = also honour `metadata: { resident: true }` in a
+#           # skill's frontmatter. The marker is read once per session per skill
+#           # (it lives on the loaded definition, not on the catalog summary).
+#           honorMetadata: true
+#           # true (default) = render each author's `whenToUse` for the model.
+#           whenToUse: true
+#           # Inclusive bound on one rendered `whenToUse`, after whitespace
+#           # normalization. Minimum 8, default 240; a smaller value is refused at
+#           # mount.
+#           whenToUseMaxLength: 240
+#           # 'inject' (default) appends the plan to the step. 'report' computes the
+#           # same plan and logs it instead — how to see what a deployment would
+#           # send before letting it send anything. 'off' installs nothing at all.
+#           mode: inject
+#
+# Nothing here writes: no file is created, no global is patched, and the skill
+# registry is only read.
+
+- insert:
+    - id: skill-residency
+      name: '@argszero/dsh-skill-residency'
