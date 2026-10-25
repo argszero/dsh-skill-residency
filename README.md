@@ -83,8 +83,10 @@ does not render.
 ## Install
 
 ```sh
-npm install @argszero/dsh-skill-residency
+dsh plugin --profile <profile> add github:argszero/dsh-skill-residency
 ```
+
+The git spec installs the tree this README describes; `npm install` on its own never attaches a plugin to a profile — `dsh plugin add` is what writes the row that makes it load.
 
 Mount it in a profile bundle — `cordis.patch.yml` next to this README is that
 patch, ready to reference:
