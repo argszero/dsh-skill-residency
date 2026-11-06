@@ -1,7 +1,7 @@
 {
   "name": "@argszero/dsh-skill-residency",
   "description": "Gives the skill system the two things it cannot express today: a resident (always-on) loading path, and model visibility for the `whenToUse` frontmatter field. The session skill catalog ends its instruction with 'if the user names a skill, or the task clearly matches a skill's description' — both conditions presume a skill bound to a task, so an output-style skill ('load this at the start of every session and follow it for all responses') can never trigger, and the only way to make instructions resident is to leave the skill system for AGENTS.md. `whenToUse` fares no better: @deepseek-ai/dsh-skill parses and validates it, the API layer carries it to the client, and the model-facing renderer never reads it (zero occurrences in @deepseek-ai/dsh-tool-skill), so an author's routing intent is silently dropped. This plugin injects, at `agent/pre-step`, one durable message carrying each skill author's `whenToUse` and one carrying the full body of every resident skill — resident by name in config or by `metadata: { resident: true }` in frontmatter. The injection is a durable, source-attributed user message, re-published only when the plan changes and re-published automatically after compaction drops it, so residency survives the context window. It changes no core package and refuses nothing: with no `whenToUse` and no residents it injects nothing at all. Zero runtime dependencies.",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "publishConfig": {
     "access": "public"
   },

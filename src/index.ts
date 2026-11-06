@@ -66,6 +66,7 @@ import type { Agent, PreStepDecision } from '@deepseek-ai/dsh-agent'
 import type { UserMessage } from '@deepseek-ai/dsh-llm'
 import type { Config, Settings } from './config.ts'
 import { normalizeConfig } from './config.ts'
+import { resolutionReport } from './host.ts'
 import { digestPlan, isEmptyPlan, publishedPlan, readPlan, SOURCE_KIND } from './plan.ts'
 import { describePlan, renderPlan, renderResident } from './render.ts'
 import { computePlan } from './residency.ts'
@@ -106,6 +107,15 @@ const LOG_PREFIX = 'skill-residency:'
 
 /** The last digest a `report`-mode deployment announced, so a step does not repeat it. */
 const reported = new WeakMap<Agent, string>()
+
+/**
+ * Whether this process has already said that it cannot reach the host.
+ *
+ * Once, not once per step: a step runs on every model request, so repeating it
+ * would bury the session's own log to say nothing new. The running count in
+ * {@link resolutionCounts} is what distinguishes an outage from a one-off.
+ */
+let inactiveReported = false
 
 /**
  * Install the plugin.
@@ -158,6 +168,18 @@ async function augment(
   decision: Extract<PreStepDecision, { kind: 'enter' }>,
   settings: Settings,
 ): Promise<PreStepDecision> {
+  // Resolution first, and as a reported outcome rather than an exception: an
+  // unreachable host is not this session's fault and must not read as "there is
+  // nothing to publish", which is what a silent return would say.
+  const resolution = resolutionReport()
+  if (!resolution.reached) {
+    if (!inactiveReported) {
+      inactiveReported = true
+      ctx.logger.warn(`${LOG_PREFIX} inactive — ${resolution.reason} Tried: ${resolution.tried.join(', ')}`)
+    }
+    return decision
+  }
+
   const workingDirectory = workingDirectoryOf(ctx)
   const cwd = workingDirectory === undefined ? undefined : await workingDirectory.ensure(agent, signal)
   signal.throwIfAborted()

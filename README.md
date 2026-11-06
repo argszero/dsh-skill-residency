@@ -83,10 +83,16 @@ does not render.
 ## Install
 
 ```sh
-dsh plugin --profile <profile> add github:argszero/dsh-skill-residency
+dsh plugin --profile <profile> add github:argszero/dsh-skill-residency#v0.1.1
 ```
 
 The git spec installs the tree this README describes; `npm install` on its own never attaches a plugin to a profile — `dsh plugin add` is what writes the row that makes it load.
+
+**Name the tag.** 0.1.0 imported four harness values at module scope, and a
+profile installs none of a plugin's peers (`autoInstallPeers: false`), so that
+version never evaluated there at all: the loader never saw the plugin and both
+gaps it exists to close stayed open. 0.1.1 resolves those values from the process
+that is already running, so it is the first version that mounts.
 
 Mount it in a profile bundle — `cordis.patch.yml` next to this README is that
 patch, ready to reference:

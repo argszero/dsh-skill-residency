@@ -23,7 +23,8 @@
 
 import { createHash } from 'node:crypto'
 import type { Agent } from '@deepseek-ai/dsh-agent'
-import { SessionSeq } from '@deepseek-ai/dsh-session'
+import type { SessionSeq } from '@deepseek-ai/dsh-session'
+import { hostModules } from './host.ts'
 
 /** The `source.kind` every message this plugin publishes carries. */
 export const SOURCE_KIND = 'skill-residency'
@@ -184,8 +185,9 @@ export function publishedPlan(agent: Agent): PublishedPlan {
   const visible = new Set(agent.session.surface.nodes)
   let published = false
   for (let index = agent.session.seq - 1; index >= 0; index -= 1) {
+    const seq: SessionSeq = hostModules().session.SessionSeq(index)
     // oxlint-disable-next-line typescript/no-deprecated -- Existing Session history read; migration deferred.
-    const event = agent.session.eventAt(SessionSeq(index))
+    const event = agent.session.eventAt(seq)
     if (event === undefined) {
       throw new Error(`skill-residency: cannot read session seq ${String(index)} below the current length`)
     }

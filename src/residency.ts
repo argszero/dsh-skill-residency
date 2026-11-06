@@ -21,9 +21,9 @@
 
 import type { Context } from '@deepseek-ai/cordis'
 import type { Agent } from '@deepseek-ai/dsh-agent'
-import { isModelInvocable } from '@deepseek-ai/dsh-skill'
 import type { SkillDefinition } from '@deepseek-ai/dsh-skill'
 import type { Settings } from './config.ts'
+import { hostModules } from './host.ts'
 import { digestText } from './plan.ts'
 import type { ResidencyPlan, ResidentRecord, RoutingHint } from './plan.ts'
 
@@ -143,6 +143,7 @@ export async function computePlan(
 ): Promise<ResidencyComputation | undefined> {
   const snapshot = await ctx.skills.snapshot(lookup)
   if (!snapshot.complete) return undefined
+  const { isModelInvocable } = hostModules().skill
   const skills = snapshot.skills.filter(isModelInvocable)
 
   const hints: RoutingHint[] = []

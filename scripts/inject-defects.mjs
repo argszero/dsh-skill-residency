@@ -145,6 +145,36 @@ const MUTATIONS = [
     ]],
   },
   {
+    name: 'a namespace that resolves without a borrowed value is accepted as usable',
+    file: 'src/host.ts',
+    arms: 'resolution.spec.mjs',
+    edits: [[
+      '    if (typeof value !== \'function\') {',
+      '    if (typeof value !== \'function\' && false) {',
+    ]],
+  },
+  {
+    name: 'the resolved-namespace check stops requiring escapeText, so a partial package counts as reached',
+    file: 'src/host.ts',
+    arms: 'resolution.spec.mjs',
+    edits: [["    ['escapeText', skill.escapeText],\n", '']],
+  },
+  {
+    name: 'the version of the package that answered is never disclosed',
+    file: 'src/host.ts',
+    arms: 'resolution.spec.mjs',
+    edits: [[
+      "      if (typeof manifest.version === 'string') return manifest.version",
+      "      if (manifest.version === 'never-a-version') return 'x'",
+    ]],
+  },
+  {
+    name: 'the anchors that failed are carried only in prose, so an operator cannot read them off the error',
+    file: 'src/host.ts',
+    arms: 'resolution.spec.mjs',
+    edits: [["  Object.defineProperty(error, 'anchors', { value: tried, enumerable: true })\n", '']],
+  },
+  {
     name: 'a resident message loses the name that identifies the skill it carries',
     file: 'src/render.ts',
     arms: 'residency.spec.mjs',

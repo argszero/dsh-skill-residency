@@ -18,10 +18,9 @@
  * @module @argszero/dsh-skill-residency/render
  */
 
-import { createUserMessage } from '@deepseek-ai/dsh-llm'
 import type { UserMessage } from '@deepseek-ai/dsh-llm'
-import { escapeText, renderSkillContent } from '@deepseek-ai/dsh-skill'
 import type { SkillDefinition } from '@deepseek-ai/dsh-skill'
+import { hostModules } from './host.ts'
 import { SOURCE_KIND } from './plan.ts'
 import type { ResidencyPlan } from './plan.ts'
 
@@ -35,12 +34,13 @@ import type { ResidencyPlan } from './plan.ts'
  * @returns the durable user message carrying them.
  */
 export function renderPlan(plan: ResidencyPlan): UserMessage {
+  const { llm, skill } = hostModules()
   const lines: string[] = ['<system-reminder>']
   if (plan.hints.length > 0) {
     lines.push(
       'Skill routing hints. Each line below is the skill author\'s own `whenToUse`; weigh it together with the skill\'s description when deciding whether that skill applies, and call the `skill` tool for one that does.',
       '',
-      ...plan.hints.map(hint => `- \`${hint.name}\`: ${escapeText(hint.whenToUse)}`),
+      ...plan.hints.map(hint => `- \`${hint.name}\`: ${skill.escapeText(hint.whenToUse)}`),
     )
   }
   if (plan.resident.length > 0) {
@@ -52,7 +52,7 @@ export function renderPlan(plan: ResidencyPlan): UserMessage {
     )
   }
   lines.push('</system-reminder>')
-  return createUserMessage({
+  return llm.createUserMessage({
     content: [{ type: 'text', text: lines.join('\n') }],
     source: { kind: SOURCE_KIND, form: 'instructions', hints: plan.hints, resident: plan.resident },
   })
@@ -67,8 +67,9 @@ export function renderPlan(plan: ResidencyPlan): UserMessage {
  * @returns the durable user message carrying it.
  */
 export function renderResident(definition: SkillDefinition): UserMessage {
-  return createUserMessage({
-    content: [{ type: 'text', text: renderSkillContent(definition) }],
+  const { llm, skill } = hostModules()
+  return llm.createUserMessage({
+    content: [{ type: 'text', text: skill.renderSkillContent(definition) }],
     source: { kind: SOURCE_KIND, form: 'instructions', skill: definition.name },
   })
 }
